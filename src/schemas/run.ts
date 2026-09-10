@@ -36,6 +36,16 @@ export const PendingApprovalSchema = z.object({
 });
 export type PendingApproval = z.infer<typeof PendingApprovalSchema>;
 
+export const TokenUsageSummarySchema = z.object({
+  input_tokens: z.number().nonnegative(),
+  output_tokens: z.number().nonnegative(),
+  total_tokens: z.number().nonnegative(),
+  estimated_cost_usd: z.number().nonnegative(),
+  budget_ceiling: z.number().positive(),
+  over_budget: z.boolean(),
+});
+export type TokenUsageSummary = z.infer<typeof TokenUsageSummarySchema>;
+
 export const RunRecordSchema = z.object({
   run_id: z.string().min(1),
   case_id: z.string().min(1),
@@ -44,6 +54,11 @@ export const RunRecordSchema = z.object({
   result: RecommendationResultSchema.nullable(),
   pending_approval: PendingApprovalSchema.nullable(),
   error: z.string().nullable(),
+  // Null until the LLM decision step actually runs (e.g. a case that
+  // exits at MISSING_PO before ever reaching Bedrock has no usage to
+  // report). Present on every run that made at least one model call,
+  // including repair-retry attempts summed together.
+  token_usage: TokenUsageSummarySchema.nullable(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });

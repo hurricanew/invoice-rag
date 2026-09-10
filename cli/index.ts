@@ -15,6 +15,13 @@ function printRunSummary(run: Awaited<ReturnType<typeof getRun>>) {
   console.log(`status:        ${run.status}`);
   console.log(`current_state: ${run.current_state}`);
   if (run.error) console.log(`error:         ${run.error}`);
+  if (run.token_usage) {
+    const t = run.token_usage;
+    console.log(
+      `token_usage:   ${t.total_tokens} tokens (${t.input_tokens} in / ${t.output_tokens} out), ` +
+        `$${t.estimated_cost_usd.toFixed(6)} est.${t.over_budget ? " — OVER BUDGET" : ""}`,
+    );
+  }
   if (run.pending_approval) {
     console.log(`pending_approval:`);
     console.log(JSON.stringify(run.pending_approval, null, 2));

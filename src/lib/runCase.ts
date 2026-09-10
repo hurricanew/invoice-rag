@@ -12,7 +12,21 @@ import { reconcileAuthority } from "./reconcileAuthority.js";
 import { getLLMDecisionWithRepair, ModelOutputInvalidError } from "./llmDecisionWithRepair.js";
 import { withTimeoutAndRetry, ToolTimeoutError } from "./withTimeoutAndRetry.js";
 import { createRun, updateRun, appendAuditEvent, getRun } from "./runStore.js";
-import type { RunRecord } from "../schemas/run.js";
+import { getRunTokenTotals } from "./tokenCounter.js";
+import type { RunRecord, TokenUsageSummary } from "../schemas/run.js";
+
+function currentTokenUsage(runId: string): TokenUsageSummary | null {
+  const totals = getRunTokenTotals(runId);
+  if (!totals) return null;
+  return {
+    input_tokens: totals.cumulative_input_tokens,
+    output_tokens: totals.cumulative_output_tokens,
+    total_tokens: totals.cumulative_total_tokens,
+    estimated_cost_usd: totals.cumulative_cost_usd,
+    budget_ceiling: totals.budget_ceiling,
+    over_budget: totals.over_budget,
+  };
+}
 
 const TOOL_TIMEOUT_MS = 5000;
 const TOOL_MAX_RETRIES = 2;
@@ -187,6 +201,10 @@ export async function runCase(caseRequest: CaseRequest): Promise<RunRecord> {
           status: "FAILED",
           current_state: "MODEL_OUTPUT_INVALID",
           error: err.message,
+          // Repair-retry attempts still burn tokens even though the
+          // final output was rejected — record what was actually spent,
+          // not nothing.
+          token_usage: currentTokenUsage(run.run_id),
         });
       }
       throw err;
@@ -197,7 +215,11 @@ export async function runCase(caseRequest: CaseRequest): Promise<RunRecord> {
       detail: `recommendation=${outcome.result.recommendation}, attempts=${outcome.attempts}`,
     });
 
-    await updateRun(run.run_id, { current_state: "VALIDATE_OUTPUT", result: outcome.result });
+    await updateRun(run.run_id, {
+      current_state: "VALIDATE_OUTPUT",
+      result: outcome.result,
+      token_usage: currentTokenUsage(run.run_id),
+    });
 
     const isConsequential = CONSEQUENTIAL_DECISIONS.has(outcome.result.recommendation);
     if (!isConsequential) {

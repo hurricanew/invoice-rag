@@ -92,6 +92,7 @@ export async function createRun(caseId: string): Promise<RunRecord> {
       result: null,
       pending_approval: null,
       error: null,
+      token_usage: null,
       created_at: now,
       updated_at: now,
     });
@@ -117,7 +118,7 @@ export async function updateRun(
   patch: Partial<
     Pick<
       RunRecord,
-      "status" | "current_state" | "result" | "pending_approval" | "error"
+      "status" | "current_state" | "result" | "pending_approval" | "error" | "token_usage"
     >
   >,
 ): Promise<RunRecord> {

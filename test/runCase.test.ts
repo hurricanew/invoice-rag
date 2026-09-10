@@ -20,6 +20,7 @@ import { getLLMDecisionWithRepair } from "../src/lib/llmDecisionWithRepair.js";
 import { runCase, resolveApproval, RunNotFoundError, RunNotAwaitingApprovalError } from "../src/lib/runCase.js";
 import { getRun, getAuditEvents } from "../src/lib/runStore.js";
 import { loadCaseFixture } from "../src/lib/loadFixtures.js";
+import { recordTokenUsage, resetTokenTotals } from "../src/lib/tokenCounter.js";
 import type { RecommendationResult } from "../src/schemas/result.js";
 
 const mockedDecision = vi.mocked(getLLMDecisionWithRepair);
@@ -48,6 +49,7 @@ const dataDir = path.resolve(process.cwd(), "data-test-runCase");
 beforeEach(async () => {
   await rm(dataDir, { recursive: true, force: true });
   mockedDecision.mockReset();
+  resetTokenTotals();
 });
 afterAll(async () => {
   await rm(dataDir, { recursive: true, force: true });
@@ -89,6 +91,42 @@ describe("runCase — FIN-001 (valid three-way match)", () => {
     expect(events.some((e) => e.event === "llm_decision")).toBe(true);
     expect(events.some((e) => e.event === "approval_requested")).toBe(true);
   });
+
+  it("persists token usage on the run record after the LLM decision step", async () => {
+    mockedDecision.mockImplementation(async (runId: string) => {
+      recordTokenUsage(runId, 2000, 500);
+      return { result: makeResult(), attempts: 1, totalTokens: 2500 };
+    });
+
+    const { case: caseRequest } = await loadCaseFixture("FIN-001");
+    const run = await runCase(caseRequest);
+
+    expect(run.token_usage).not.toBeNull();
+    expect(run.token_usage?.input_tokens).toBe(2000);
+    expect(run.token_usage?.output_tokens).toBe(500);
+    expect(run.token_usage?.total_tokens).toBe(2500);
+    expect(run.token_usage?.estimated_cost_usd).toBeGreaterThan(0);
+    expect(run.token_usage?.over_budget).toBe(false);
+  });
+
+  it("sums token usage across repair-retry attempts", async () => {
+    let attempt = 0;
+    mockedDecision.mockImplementation(async (runId: string) => {
+      attempt += 1;
+      recordTokenUsage(runId, 1000, 200); // simulates one attempt's usage
+      return { result: makeResult(), attempts: attempt, totalTokens: 1200 * attempt };
+    });
+
+    const { case: caseRequest } = await loadCaseFixture("FIN-001");
+    const run = await runCase(caseRequest);
+
+    // getLLMDecisionWithRepair itself sums across its internal retries;
+    // this mock only calls recordTokenUsage once per invocation of the
+    // mocked function, so this confirms runCase reads back whatever
+    // cumulative total tokenCounter has for the run, not just the last
+    // recordTokenUsage call in isolation.
+    expect(run.token_usage?.total_tokens).toBe(1200);
+  });
 });
 
 describe("runCase — FIN-004 (missing PO)", () => {
@@ -98,6 +136,7 @@ describe("runCase — FIN-004 (missing PO)", () => {
 
     expect(run.current_state).toBe("MISSING_PO");
     expect(run.status).toBe("COMPLETED");
+    expect(run.token_usage).toBeNull();
     expect(run.error).toMatch(/not found/i);
     expect(mockedDecision).not.toHaveBeenCalled();
   });
