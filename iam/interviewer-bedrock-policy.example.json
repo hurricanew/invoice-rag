@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "InvokeSpecificBedrockModelOnly",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:<region>::foundation-model/<model-id>"
+      ]
+    },
+    {
+      "Sid": "ApplySpecificGuardrailOnly",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:ApplyGuardrail"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:<region>:<account-id>:guardrail/<guardrail-id>"
+      ]
+    }
+  ]
+}

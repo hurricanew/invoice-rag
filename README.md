@@ -23,10 +23,9 @@ This README will be updated as later stages land. What's documented below is acc
 ## Prerequisites
 
 - Node.js 22+ (see [.nvmrc](.nvmrc))
-- An AWS account with:
-  - Bedrock model access granted for the model you intend to use (see [Model choice](#model-choice-and-a-known-limitation))
-  - Permission to call `bedrock:InvokeModel` / `bedrock-runtime:Converse`, and optionally `bedrock:CreateGuardrail` / `bedrock:ApplyGuardrail` if you want to reproduce the Guardrail
-  - AWS CLI configured with a profile that can assume those permissions (`aws configure`)
+- AWS credentials that can call `bedrock:InvokeModel` and (optionally) `bedrock:ApplyGuardrail`. Two ways to get this:
+  - **Your own AWS account**: Bedrock model access granted for the model you intend to use (see [Model choice](#model-choice-and-a-known-limitation)), and an AWS CLI profile configured with those permissions (`aws configure`).
+  - **Reviewing/demoing this without your own AWS account**: ask the author for a short-lived, tightly-scoped credential set (see [iam/README.md](iam/README.md) for exactly what it grants — only `InvokeModel` on one specific model and `ApplyGuardrail` on one specific guardrail, nothing else, and it expires on its own within the hour). Set the three resulting env vars (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`) and leave `AWS_PROFILE` unset in `.env`.
 
 ## Setup
 
