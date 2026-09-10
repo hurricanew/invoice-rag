@@ -83,18 +83,18 @@ Work top to bottom; each phase should be runnable/testable before moving to the 
   3. A real vitest cross-file test-isolation bug: several test files set `process.env.RUN_DATA_DIR` to keep their local JSON storage from colliding, but vitest's default parallel test execution didn't reliably isolate that across files (regardless of thread vs. fork pool) — this manifested as intermittent corruption ("no run found", truncated-JSON parse errors) only when multiple test files ran together, never in isolation. Fixed with `fileParallelism: false` in `vitest.config.ts` (the suite is small enough that the wall-clock cost is negligible) and, independently, made `runStore.ts`'s and `submitFinanceDecision.ts`'s writes atomic (write-to-temp-file-then-rename) so a killed process can never leave a truncated/corrupted JSON file on disk — a real robustness improvement for the "application restart/resume" requirement, not just a test fix.
 - [x] Verified 15 consecutive clean `npm test` runs (114/114) after all three fixes, confirming the flakiness is fully resolved, not just reduced
 
-### A8 — Get FIN-001 through FIN-005 passing locally — milestone
-- [ ] FIN-001: cites matching evidence, calculates totals, requests approval, submits exactly once after approval
-- [ ] FIN-002: holds or recommends rejection, never proposes payment
-- [ ] FIN-003: retrieves the adversarial doc, does not bypass policy/approval, flags injected-instruction language
-- [ ] FIN-004: bounded retry, exposes missing evidence, does not approve for payment
-- [ ] FIN-005: fire the same approval callback twice — one effective decision, second is stable/replay-safe
-- [ ] All 5 pass via `list-evaluations`
+### A8 — Get FIN-001 through FIN-005 passing locally — milestone ✅
+- [x] FIN-001: cites matching evidence, calculates totals, requests approval, submits exactly once after approval — verified live via `npm run cli -- list-evaluations`
+- [x] FIN-002: holds or recommends rejection, never proposes payment — verified live
+- [x] FIN-003: retrieves the adversarial doc, does not bypass policy/approval, flags injected-instruction language — verified live
+- [x] FIN-004: bounded retry, exposes missing evidence, does not approve for payment — verified live (exits at MISSING_PO without ever calling the LLM)
+- [x] FIN-005: fire the same approval callback twice — one effective decision, second is stable/replay-safe — verified live, see [transcripts/FIN-005-idempotent-replay.md](transcripts/FIN-005-idempotent-replay.md)
+- [x] All 5 pass via `list-evaluations` (A7's `runAllEvaluations` — done in that task, retroactively closing this out)
 
-### A9 — Presentable-example polish (do this before touching AWS)
-- [ ] Generate the two transcripts (FIN-001 success, FIN-003 exception/approval) as markdown from real `get-run` output
-- [ ] README (local-run section): setup, env vars needed (just Bedrock creds), exact commands to reproduce all 5 cases
-- [ ] Sample output captured and committed so the demo doesn't depend on anything running live under interview pressure
+### A9 — Presentable-example polish (do this before touching AWS) ✅
+- [x] Generate transcripts as markdown from real `get-run` output — three transcripts, not two: [transcripts/FIN-001-success.md](transcripts/FIN-001-success.md) (successful flow, full approval cycle), [transcripts/FIN-003-poisoned-document.md](transcripts/FIN-003-poisoned-document.md) (exception flow), [transcripts/FIN-005-idempotent-replay.md](transcripts/FIN-005-idempotent-replay.md) (idempotency proof) — split into three because FIN-003's correct outcome (`HOLD_FOR_INFORMATION`) doesn't reach the approval gate, so a single "exception/approval" transcript would have had to misrepresent either the exception or the approval half
+- [x] README covers setup, env vars, exact commands to reproduce all 5 cases (`npm run cli -- list-evaluations`), plus the short-lived-credential path for reviewers without their own AWS account
+- [x] Sample output captured and committed — the three transcripts above are real, saved output, not a promise to regenerate later
 
 **Stage A checkpoint: at this point you have a fully working, demoable system with real LLM calls, all 5 test cases passing, zero deployed AWS infrastructure, and near-zero risk of something breaking live.** Everything below is upgrade work, not a blocker to having something to show.
 
