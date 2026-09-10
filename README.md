@@ -138,7 +138,7 @@ There's also `scripts/try-run-case.ts` and `scripts/try-llm-decision.ts` (older,
 Stage B is deployed as a Lambda behind a public Function URL. No local setup needed to try it — just call it directly:
 
 ```bash
-FN_URL="<ask the author for the current Function URL>"
+FN_URL="https://5npur7lk5hou3tbvvmwwajbzzi0oqexj.lambda-url.us-east-1.on.aws"
 
 curl -s -X POST "$FN_URL/runs" -H "Content-Type: application/json" -d @fixtures/cases/FIN-001.json
 curl -s "$FN_URL/runs/<run_id>"
@@ -148,7 +148,7 @@ curl -s "$FN_URL/evaluations"
 
 Every response includes `token_usage` automatically, since the API returns the same `RunRecord` shape the CLI does.
 
-**The URL is deliberately not published in this file** — it's rate-limited (10 requests/60s per source IP, see [Additional scope delivered](#additional-scope-delivered-beyond-the-baseline-spec)) but has no authentication (`AuthType: NONE`, a time-boxed tradeoff — see [Known limitations](#known-limitations)), so it's shared out-of-band rather than posted somewhere a scanner could pick it up. Ask the author for it, and expect it to be torn down (`cdk destroy`) once the review window is over.
+**This URL has no authentication** (`AuthType: NONE`, a time-boxed tradeoff — see [Known limitations](#known-limitations)) — it's protected only by a per-IP rate limiter (10 requests/60s, see [Additional scope delivered](#additional-scope-delivered-beyond-the-baseline-spec)), which deters casual scanning but is not real access control. It is a temporary demo deployment and will be torn down (`cdk destroy`) shortly after the review window closes — if it's already gone by the time you read this, deploy your own copy with `npx cdk deploy` (see `infra/`).
 
 ## Model choice and a known limitation
 
