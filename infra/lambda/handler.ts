@@ -3,6 +3,7 @@ import { CaseRequestSchema } from "../../src/schemas/case.js";
 import { runCase, resolveApproval } from "../../src/lib/runCase.js";
 import { getRun, getAuditEvents } from "../../src/lib/runStore.js";
 import { runAllEvaluations } from "../../src/lib/evaluations.js";
+import { checkRateLimit, sweepStaleBuckets } from "./rateLimiter.js";
 
 // Minimal HTTP wrapper around the same runCase/resolveApproval/
 // runAllEvaluations functions the CLI uses — no new orchestration logic,
@@ -12,11 +13,22 @@ import { runAllEvaluations } from "../../src/lib/evaluations.js";
 export async function handler(event: any): Promise<APIGatewayProxyResultV2> {
   const method = event.requestContext?.http?.method ?? "GET";
   const path = event.rawPath ?? "/";
-  const json = (status: number, body: unknown) => ({
+  const sourceIp = event.requestContext?.http?.sourceIp ?? "unknown";
+  const json = (status: number, body: unknown, extraHeaders: Record<string, string> = {}) => ({
     statusCode: status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...extraHeaders },
     body: JSON.stringify(body, null, 2),
   });
+
+  sweepStaleBuckets();
+  const rateLimit = checkRateLimit(sourceIp);
+  if (!rateLimit.allowed) {
+    return json(
+      429,
+      { error: "rate limit exceeded, try again shortly", retry_after_seconds: rateLimit.retryAfterSeconds },
+      { "retry-after": String(rateLimit.retryAfterSeconds ?? 60) },
+    );
+  }
 
   try {
     if (method === "POST" && path === "/runs") {

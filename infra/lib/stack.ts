@@ -18,6 +18,14 @@ export class ApRagAgentStack extends cdk.Stack {
       runtime: lambdaCore.Runtime.NODEJS_22_X,
       timeout: cdk.Duration.seconds(30),
       memorySize: 512,
+      // No reservedConcurrentExecutions here: this account's Lambda
+      // concurrency limit is only 10 total (a new/low-limit account —
+      // confirmed via `aws lambda get-account-settings`), and AWS
+      // requires at least 10 unreserved executions remain account-wide,
+      // so any positive reservation on this function is rejected at
+      // deploy time. Rate limiting is handled entirely by the in-handler
+      // per-IP limiter (rateLimiter.ts) instead — see its comments for
+      // what it does and doesn't protect against.
       environment: {
         // Ephemeral: /tmp persists only across warm invocations of the
         // same container, not across cold starts or concurrent
