@@ -139,8 +139,9 @@ This stage reuses every tool/schema/reconciliation/prompt function from Stage A 
 - [ ] Design note (1-2 pages) drawing from [architecture.md](architecture.md)
 - [ ] Automated test suite split: stable unit/contract tests vs. model-dependent integration/eval runs, per the spec's explicit requirement
 
-### B6 — Teardown (run this a few days after the demo)
-- [ ] `cdk destroy --profile rag-demo-2 --all` — tears down every CDK-managed resource (Lambdas, API Gateway, Step Functions, DynamoDB tables, S3 bucket, IAM roles), **provided every stateful resource was set to `RemovalPolicy.DESTROY` in B1** — otherwise `RETAIN`ed tables/buckets survive silently and keep billing
+### B6 — Teardown
+- [ ] **The deployed Function URL has `AuthType: NONE` — publicly invocable by anyone with the URL, billing real Bedrock calls to this account for as long as the stack exists.** This was a deliberate time-boxed tradeoff (see B3 note), not a "few days later" cleanup item — destroy the stack promptly once the demo/interview window is over, not on a multi-day delay.
+- [ ] `cdk destroy --profile rag-demo-2 --all` — tears down every CDK-managed resource (the Lambda, its Function URL, IAM role), **provided every stateful resource was set to `RemovalPolicy.DESTROY` in B1** — otherwise `RETAIN`ed tables/buckets survive silently and keep billing
 - [ ] **Delete the Bedrock Guardrail manually** — it was created out-of-band in A5 (Console or a standalone `aws bedrock create-guardrail` call), so CDK does not know about it and `cdk destroy` will not remove it: `aws bedrock delete-guardrail --guardrail-identifier <id> --profile rag-demo-2`
 - [ ] Check for orphaned CloudWatch Log Groups (`/aws/lambda/...`, `/aws/vendedlogs/states/...`) — confirm they were destroyed with the stack; if any have `RETAIN`, delete manually: `aws logs delete-log-group --log-group-name <name> --profile rag-demo-2`
 - [ ] Confirm no S3 bucket is left behind — CDK will refuse to destroy a non-empty bucket unless `autoDeleteObjects: true` was set; if destroy fails on this, empty the bucket first then re-run destroy

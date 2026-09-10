@@ -25,14 +25,25 @@ interface LedgerEntry extends SubmitFinanceDecisionOutput {
 // RUN_DATA_DIR override for the same reason as runStore.ts — isolates
 // concurrent test files (vitest's per-file worker processes) from each
 // other and from real CLI usage's data/ directory.
-const DATA_DIR = process.env.RUN_DATA_DIR
-  ? path.resolve(process.env.RUN_DATA_DIR)
-  : path.resolve(process.cwd(), "data");
-const LEDGER_PATH = path.join(DATA_DIR, "ledger.local.json");
+//
+// Resolved lazily (as functions, not module-level consts) because ESM
+// hoists all `import` statements above other top-level code regardless of
+// source order — a test file that sets process.env.RUN_DATA_DIR *between*
+// its imports (textually) still has that assignment run AFTER this
+// module's top-level code if DATA_DIR were a plain const, silently
+// defeating the isolation. Reading process.env at call time avoids that.
+function getDataDir(): string {
+  return process.env.RUN_DATA_DIR
+    ? path.resolve(process.env.RUN_DATA_DIR)
+    : path.resolve(process.cwd(), "data");
+}
+function getLedgerPath(): string {
+  return path.join(getDataDir(), "ledger.local.json");
+}
 
 async function readLedger(): Promise<LedgerEntry[]> {
   try {
-    const raw = await readFile(LEDGER_PATH, "utf-8");
+    const raw = await readFile(getLedgerPath(), "utf-8");
     return JSON.parse(raw);
   } catch (err: any) {
     if (err.code === "ENOENT") return [];
@@ -44,10 +55,12 @@ async function readLedger(): Promise<LedgerEntry[]> {
 // the full rationale (a killed process leaves the old file intact, never
 // a truncated one).
 async function writeLedger(entries: LedgerEntry[]): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
-  const tmpPath = `${LEDGER_PATH}.${randomUUID()}.tmp`;
+  const dataDir = getDataDir();
+  const ledgerPath = getLedgerPath();
+  await mkdir(dataDir, { recursive: true });
+  const tmpPath = `${ledgerPath}.${randomUUID()}.tmp`;
   await writeFile(tmpPath, JSON.stringify(entries, null, 2), "utf-8");
-  await rename(tmpPath, LEDGER_PATH);
+  await rename(tmpPath, ledgerPath);
 }
 
 // Same lost-update race as runStore.ts's read-modify-write pattern, same

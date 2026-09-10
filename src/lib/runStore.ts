@@ -12,11 +12,24 @@ import type { PendingApproval } from "../schemas/run.js";
 // coordinate across separate processes. Real CLI usage is single-process,
 // single-command-at-a-time, so the default path is what production code
 // uses; RUN_DATA_DIR is a test-only escape hatch.
-const DATA_DIR = process.env.RUN_DATA_DIR
-  ? path.resolve(process.env.RUN_DATA_DIR)
-  : path.resolve(process.cwd(), "data");
-const RUNS_PATH = path.join(DATA_DIR, "runs.local.json");
-const AUDIT_PATH = path.join(DATA_DIR, "audit_events.local.json");
+//
+// Resolved lazily (functions, not module-level consts) because ESM hoists
+// all `import` statements above other top-level code regardless of source
+// order — a test file that sets process.env.RUN_DATA_DIR textually
+// between its imports still has that assignment run AFTER this module's
+// top-level code if these were plain consts, silently defeating the
+// isolation. Reading process.env at call time avoids that.
+function getDataDir(): string {
+  return process.env.RUN_DATA_DIR
+    ? path.resolve(process.env.RUN_DATA_DIR)
+    : path.resolve(process.cwd(), "data");
+}
+function getRunsPath(): string {
+  return path.join(getDataDir(), "runs.local.json");
+}
+function getAuditPath(): string {
+  return path.join(getDataDir(), "audit_events.local.json");
+}
 
 interface RunsFile {
   runs: RunRecord[];
@@ -41,7 +54,7 @@ async function readJson<T>(filePath: string, fallback: T): Promise<T> {
 // This is what makes "application restart/resume" a safe recovery rather
 // than a coin-flip on whatever JSON.parse happens to see.
 async function writeJson(filePath: string, data: unknown): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
+  await mkdir(getDataDir(), { recursive: true });
   const tmpPath = `${filePath}.${randomUUID()}.tmp`;
   await writeFile(tmpPath, JSON.stringify(data, null, 2), "utf-8");
   await rename(tmpPath, filePath);
@@ -69,7 +82,7 @@ function withFileLock<T>(filePath: string, fn: () => Promise<T>): Promise<T> {
 }
 
 export async function createRun(caseId: string): Promise<RunRecord> {
-  return withFileLock(RUNS_PATH, async () => {
+  return withFileLock(getRunsPath(), async () => {
     const now = new Date().toISOString();
     const record: RunRecord = RunRecordSchema.parse({
       run_id: randomUUID(),
@@ -83,15 +96,15 @@ export async function createRun(caseId: string): Promise<RunRecord> {
       updated_at: now,
     });
 
-    const file = await readJson<RunsFile>(RUNS_PATH, { runs: [] });
+    const file = await readJson<RunsFile>(getRunsPath(), { runs: [] });
     file.runs.push(record);
-    await writeJson(RUNS_PATH, file);
+    await writeJson(getRunsPath(), file);
     return record;
   });
 }
 
 export async function getRun(runId: string): Promise<RunRecord | null> {
-  const file = await readJson<RunsFile>(RUNS_PATH, { runs: [] });
+  const file = await readJson<RunsFile>(getRunsPath(), { runs: [] });
   return file.runs.find((r) => r.run_id === runId) ?? null;
 }
 
@@ -108,8 +121,8 @@ export async function updateRun(
     >
   >,
 ): Promise<RunRecord> {
-  return withFileLock(RUNS_PATH, async () => {
-    const file = await readJson<RunsFile>(RUNS_PATH, { runs: [] });
+  return withFileLock(getRunsPath(), async () => {
+    const file = await readJson<RunsFile>(getRunsPath(), { runs: [] });
     const index = file.runs.findIndex((r) => r.run_id === runId);
     if (index === -1) {
       throw new Error(`updateRun: no run found with id ${runId}`);
@@ -120,7 +133,7 @@ export async function updateRun(
       updated_at: new Date().toISOString(),
     };
     file.runs[index] = RunRecordSchema.parse(updated);
-    await writeJson(RUNS_PATH, file);
+    await writeJson(getRunsPath(), file);
     return file.runs[index];
   });
 }
@@ -128,21 +141,21 @@ export async function updateRun(
 export async function appendAuditEvent(
   event: Omit<AuditEvent, "event_id" | "ts">,
 ): Promise<AuditEvent> {
-  return withFileLock(AUDIT_PATH, async () => {
+  return withFileLock(getAuditPath(), async () => {
     const fullEvent: AuditEvent = AuditEventSchema.parse({
       ...event,
       event_id: randomUUID(),
       ts: new Date().toISOString(),
     });
-    const file = await readJson<AuditFile>(AUDIT_PATH, { events: [] });
+    const file = await readJson<AuditFile>(getAuditPath(), { events: [] });
     file.events.push(fullEvent);
-    await writeJson(AUDIT_PATH, file);
+    await writeJson(getAuditPath(), file);
     return fullEvent;
   });
 }
 
 export async function getAuditEvents(runId: string): Promise<AuditEvent[]> {
-  const file = await readJson<AuditFile>(AUDIT_PATH, { events: [] });
+  const file = await readJson<AuditFile>(getAuditPath(), { events: [] });
   return file.events.filter((e) => e.run_id === runId);
 }
 

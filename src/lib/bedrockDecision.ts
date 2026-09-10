@@ -30,6 +30,12 @@ export class GuardrailBlockedError extends Error {
 }
 
 export async function callBedrockDecision(prompt: string): Promise<LLMDecisionCallResult> {
+  if (!config.bedrockModelId) {
+    throw new Error(
+      "BEDROCK_MODEL_ID is not set — copy .env.example to .env and fill in a model ID before making a live Bedrock call.",
+    );
+  }
+
   const command = new ConverseCommand({
     modelId: config.bedrockModelId,
     messages: [{ role: "user", content: [{ text: prompt }] }],

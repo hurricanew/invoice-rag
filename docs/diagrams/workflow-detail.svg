@@ -1,12 +1,12 @@
-<svg width="680" height="900" viewBox="0 0 680 900" xmlns="http://www.w3.org/2000/svg" role="img">
-<title>Accounts-payable agent — Step Functions workflow detail</title>
-<desc>Inside the state machine: retrieve finance documents, then run three read-only lookups in parallel, then reconcile deterministically in code, then call Bedrock for a decision, then validate that output against a typed schema with a bounded repair retry back to the decision step and an explicit failure state if it stays invalid. A valid consequential decision waits for human approval before a final idempotent submit; a non-consequential decision completes directly.</desc>
+<svg width="680" height="950" viewBox="0 0 680 950" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Accounts-payable agent — workflow detail</title>
+<desc>The state sequence itself is accurate to what runs today: retrieve finance documents, then run three read-only lookups in parallel, then reconcile deterministically in code, then call Bedrock for a decision, then validate that output against a typed schema with a bounded repair retry back to the decision step and an explicit failure state if it stays invalid. A valid consequential decision waits for human approval before a final idempotent submit; a non-consequential decision completes directly. What differs from this diagram's original Step Functions framing: it currently runs as one Lambda's in-process function calls, not literal Step Functions states, and persistence is ephemeral /tmp, not DynamoDB. See the caption at the bottom of this diagram.</desc>
 <defs>
 <marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
 <path d="M2 1L8 5L2 9" fill="none" stroke="#5f5e5a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </marker>
 </defs>
-<rect width="680" height="900" fill="#ffffff"/>
+<rect width="680" height="950" fill="#ffffff"/>
 
 <!-- Retrieve documents -->
 <g>
@@ -17,7 +17,8 @@
 
 <!-- Parallel lookups container -->
 <rect x="90" y="106" width="500" height="110" rx="12" fill="none" stroke="#185fa5" stroke-width="0.5" stroke-dasharray="4 3"/>
-<text x="112" y="128" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#185fa5">Parallel (read-only, deterministic merge)</text>
+<text x="112" y="122" dominant-baseline="central" font-family="sans-serif" font-size="12" font-weight="500" fill="#185fa5">AWS Step Functions Parallel state</text>
+<text x="112" y="136" dominant-baseline="central" font-family="sans-serif" font-size="11" fill="#185fa5">(read-only branches, deterministic merge)</text>
 
 <g>
 <rect x="110" y="146" width="140" height="52" rx="8" fill="#e6f1fb" stroke="#185fa5" stroke-width="0.5"/>
@@ -68,10 +69,10 @@
 <text x="340" y="454" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#a32d2d">schema + repair loop</text>
 </g>
 
-<!-- Repair loop, routed clear of the token counter box -->
-<path d="M450 446 L 610 446 L 610 358 L 452 358" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
-<text x="614" y="400" font-family="sans-serif" font-size="12" fill="#5f5e5a">invalid: repair</text>
-<text x="614" y="414" font-family="sans-serif" font-size="12" fill="#5f5e5a">retry, max 2</text>
+<!-- Repair loop: exits Validate output's right edge (450,446), runs right to x=670 (clear of the token counter box's right edge at x=650), up to y=310 (above the token counter box's top edge at y=332, so the leftward return leg at y=310 passes over the top of both LLM decision and token counter without entering either), then down into LLM decision's top edge at x=400 (offset from the x=340 Reconcile connector so the two don't overlap). -->
+<path d="M450 446 L 670 446 L 670 310 L 400 310 L 400 332" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+<text x="530" y="428" font-family="sans-serif" font-size="12" fill="#5f5e5a">invalid: repair</text>
+<text x="530" y="442" font-family="sans-serif" font-size="12" fill="#5f5e5a">retry, max 2</text>
 
 <!-- Explicit fail branch -->
 <path d="M230 456 L 70 456 L 70 560" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
@@ -99,10 +100,10 @@
 <text x="500" y="608" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#412402">Wait for approval</text>
 <text x="500" y="626" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#854f0b">pauses the run</text>
 </g>
-<path d="M500 648 L 500 690 L 450 706" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+<path d="M500 648 L 500 690 L 400 690 L 400 706" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
 
 <!-- No -> straight down -->
-<path d="M250 532 L 190 532 L 190 706" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+<path d="M250 532 L 190 532 L 190 690 L 280 690 L 280 706" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
 <text x="140" y="548" font-family="sans-serif" font-size="12" fill="#5f5e5a">no</text>
 
 <!-- Submit decision -->
@@ -118,4 +119,10 @@
 <rect x="230" y="790" width="220" height="48" rx="8" fill="#f1efe8" stroke="#5f5e5a" stroke-width="0.5"/>
 <text x="340" y="814" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#2c2c2a">Persist audit trail, end</text>
 </g>
+
+<!-- Deployed-today caption -->
+<rect x="20" y="870" width="640" height="60" rx="6" fill="#faeeda" stroke="#854f0b" stroke-width="0.5"/>
+<text x="340" y="888" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" font-weight="500" fill="#412402">This state sequence is real — but deployed today as one Lambda's in-process</text>
+<text x="340" y="904" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#412402">function calls, not literal Step Functions states. Persistence is ephemeral</text>
+<text x="340" y="918" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#412402">/tmp, not DynamoDB. See system-overview.svg and README.md.</text>
 </svg>
