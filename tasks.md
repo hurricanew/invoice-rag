@@ -33,11 +33,11 @@ Work top to bottom; each phase should be runnable/testable before moving to the 
 - [x] PO-99999 (FIN-004) deliberately has no fixture file — `loadPurchaseOrderFixture` returns `null` on missing file, simulating the "not found / timeout" signal without a crash
 - [x] 17 new unit tests (corpus ingestion + fixture loading), all passing; `tsc --noEmit` clean
 
-### A3 — Tool implementations (pure functions, fully unit-testable)
-- [ ] `retrieve_finance_documents`: cosine-similarity search over the local embedded corpus
-- [ ] `get_vendor_record`, `get_purchase_order`, `check_invoice_history`: lookups against local fixture JSON
-- [ ] `submit_finance_decision`: simulated posting against a local JSON "ledger"; requires an idempotency key; deny-by-default (rejects with no valid approval reference)
-- [ ] Unit tests per tool: valid input → valid output; bad/missing input → explicit rejection, not silent pass-through
+### A3 — Tool implementations (pure functions, fully unit-testable) ✅
+- [x] `retrieve_finance_documents`: term-overlap relevance scoring over the local ingested corpus ([src/tools/retrieveFinanceDocuments.ts](src/tools/retrieveFinanceDocuments.ts)) — placeholder for cosine similarity, swapped once embeddings land in A5
+- [x] `get_vendor_record` ([src/tools/getVendorRecord.ts](src/tools/getVendorRecord.ts)), `get_purchase_order` ([src/tools/getPurchaseOrder.ts](src/tools/getPurchaseOrder.ts)), `check_invoice_history` ([src/tools/checkInvoiceHistory.ts](src/tools/checkInvoiceHistory.ts)): lookups against local fixture JSON — PO lookup returns `found:false` on a missing fixture (FIN-004) instead of throwing; invoice history implements both exact and fuzzy matching per FIN-POL-005 §1 (punctuation-stripped reference, <0.5% amount variance)
+- [x] `submit_finance_decision` ([src/tools/submitFinanceDecision.ts](src/tools/submitFinanceDecision.ts)): simulated posting against a local JSON ledger; requires idempotency key; deny-by-default at two levels — schema rejects an empty `approval_reference`, business logic rejects a whitespace-only one
+- [x] 19 new unit tests per tool: valid input → valid output; bad/missing input → explicit rejection (schema or thrown error, never silent pass-through); idempotent-replay behavior verified for `submit_finance_decision`. 56 tests total passing, `tsc --noEmit` clean
 
 ### A4 — Deterministic reconciliation (code, not LLM) — this is scoring-critical and AWS-independent, do it early
 - [ ] Three-way match / tolerance calc per [02_three_way_matching_and_tolerances.md](finance_rag_corpus/02_three_way_matching_and_tolerances.md) (AUD 50/1% goods, AUD 100/2% services, freight AUD 75)
