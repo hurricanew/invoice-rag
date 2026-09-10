@@ -13,8 +13,8 @@ import { reconcileAuthority } from "../../src/lib/reconcileAuthority.js";
 import { getLLMDecisionWithRepair } from "../../src/lib/llmDecisionWithRepair.js";
 
 async function runCaseThroughLLM(caseId: string) {
-  const { case: caseRequest, scenario } = await loadCaseFixture(caseId);
-  const po = scenario?.po_number ? await loadPurchaseOrderFixture(scenario.po_number) : null;
+  const { case: caseRequest } = await loadCaseFixture(caseId);
+  const po = caseRequest.po_reference ? await loadPurchaseOrderFixture(caseRequest.po_reference) : null;
   const vendor = await loadVendorFixture(caseRequest.vendor_id);
   const historyResult = await checkInvoiceHistory({
     vendor_id: caseRequest.vendor_id,

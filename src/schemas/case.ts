@@ -6,6 +6,10 @@ export const CaseRequestSchema = z.object({
   vendor_id: z.string().min(1),
   amount: z.number().positive(),
   currency: z.string().length(3),
+  // Optional: a PO-backed invoice supplies this; a non-PO invoice
+  // (statutory charge, emergency purchase, etc. — see FIN-POL-012)
+  // legitimately omits it. Never inferred from notes/attachment text.
+  po_reference: z.string().min(1).optional(),
   notes: z.string().optional(),
   attachments: z
     .array(

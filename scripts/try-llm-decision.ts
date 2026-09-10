@@ -12,7 +12,7 @@ async function main() {
   const { case: caseRequest, scenario } = await loadCaseFixture(caseId);
   console.log(`Running ${caseId}: ${scenario?.name}`);
 
-  const po = scenario?.po_number ? await loadPurchaseOrderFixture(scenario.po_number) : null;
+  const po = caseRequest.po_reference ? await loadPurchaseOrderFixture(caseRequest.po_reference) : null;
   const vendor = await loadVendorFixture(caseRequest.vendor_id);
   const historyResult = await checkInvoiceHistory({
     vendor_id: caseRequest.vendor_id,

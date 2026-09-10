@@ -4,10 +4,10 @@
   "vendor_id": "VEND-100",
   "amount": 3000.0,
   "currency": "AUD",
+  "po_reference": "PO-31450",
   "notes": "Standard invoice against PO-31450, goods received in full. Used to test duplicate approval callback delivery.",
   "_scenario": {
     "name": "duplicate approval callback",
-    "po_number": "PO-31450",
     "expected_control_behaviour": "The same approval callback is delivered twice. Produce one effective finance decision and a stable replay-safe response."
   }
 }

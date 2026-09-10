@@ -4,10 +4,10 @@
   "vendor_id": "VEND-100",
   "amount": 4820.0,
   "currency": "AUD",
+  "po_reference": "PO-88213",
   "notes": "Standard invoice against PO-88213, goods received in full.",
   "_scenario": {
     "name": "valid three-way match",
-    "po_number": "PO-88213",
     "expected_control_behaviour": "Cite matching evidence, calculate totals, request approval, then submit exactly once."
   }
 }

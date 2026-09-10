@@ -8,8 +8,8 @@ Full design rationale — orchestration, RAG strategy, trust boundaries, failure
 
 This project is built in two stages (see [tasks.md](tasks.md) for the full plan):
 
-- **Stage A (local)** is in progress. Completed so far: typed contracts, fixtures, all 5 tool implementations, deterministic reconciliation logic, and the LLM decision/validation/repair pipeline — **each individually implemented and unit-tested**, and the LLM pipeline is **verified working end-to-end against live AWS Bedrock** for 3 of the 5 required test cases (see [Live verification](#live-verification-already-done) below).
-- **Not yet built**: the orchestrator that chains these pieces into a single `runCase` state sequence with approval pause/resume, the CLI commands, and the Stage B AWS deployment (Step Functions/API Gateway/DynamoDB). There is currently no single command that runs a full case end-to-end — the pieces are proven correct in isolation and via the scratch script described below, not yet wired into the final interface.
+- **Stage A (local) — core milestone reached.** The full pipeline runs end-to-end through a single orchestrator: retrieve documents → parallel lookups (vendor/PO/invoice history) → deterministic reconciliation → LLM decision (with validation/repair) → approval pause → resolve → submit, with a complete audit trail persisted at every step. Verified live against real AWS Bedrock, not just mocked. 105 tests passing.
+- **Not yet built**: a CLI wrapper around the orchestrator (`start-run`/`get-run`/`approve`/`list-evaluations` as documented commands rather than scratch scripts) and the Stage B AWS deployment (Step Functions/API Gateway/DynamoDB). The orchestrator itself — the hard part — exists and works; what's left is presentation-layer wiring.
 
 This README will be updated as later stages land. What's documented below is accurate to what exists right now.
 
@@ -105,15 +105,18 @@ npm run test:integration  # model-dependent tests — makes real Bedrock calls, 
 
 `npm run test:integration` makes 3 real Bedrock calls (FIN-001, FIN-002, FIN-003) and asserts on the actual model output — see [Sample output](#sample-output) below for what these produce. Requires valid AWS credentials in `.env`.
 
-## Try a single case end-to-end (scratch script, not the final interface)
+## Run a case through the full orchestrator
 
 ```bash
-npx tsx scripts/try-llm-decision.ts FIN-001
-npx tsx scripts/try-llm-decision.ts FIN-002
-npx tsx scripts/try-llm-decision.ts FIN-003
+npx tsx scripts/try-run-case.ts FIN-001 approve
+npx tsx scripts/try-run-case.ts FIN-002 approve
+npx tsx scripts/try-run-case.ts FIN-004 approve   # exits at MISSING_PO before ever reaching the LLM
+npx tsx scripts/try-run-case.ts FIN-005 approve   # then run it again with the same run_id printed to see the idempotent replay
 ```
 
-This script wires retrieval → lookups → reconciliation → the LLM decision together for one case and prints the result. It is a development/verification script, not the CLI interface the spec asks for (`start-run`/`get-run`/`approve`/`list-evaluations`) — that interface is Stage A6/A7, not yet built. `FIN-004` and `FIN-005` are not yet runnable through this script because they exercise behavior (missing-PO handling, approval pause/resume, idempotent replay) that lives in the orchestrator, which doesn't exist yet.
+This runs a case through the actual `runCase` orchestrator ([src/lib/runCase.ts](src/lib/runCase.ts)) — retrieval, parallel lookups, reconciliation, the LLM decision, and (for a consequential recommendation) a pause for approval that `resolveApproval` then resumes and completes, including the final `submit_finance_decision` call. This is a scratch script around the real orchestration logic, not yet the documented CLI (`start-run`/`get-run`/`approve`/`list-evaluations`) — that's a thin wrapper still to be built (Stage A7), since the orchestrator it would call already exists and is tested.
+
+There's also `scripts/try-llm-decision.ts` (older, narrower — just retrieval → reconciliation → LLM decision, no orchestrator, no persistence), kept for quick prompt/model iteration.
 
 ## Model choice and a known limitation
 
@@ -129,8 +132,8 @@ BEDROCK_MODEL_ID=us.anthropic.claude-sonnet-4-5-20250929-v1:0
 
 - **Retrieval is term-overlap, not embeddings.** `retrieve_finance_documents` scores relevance by keyword overlap, not cosine similarity over real embeddings. This is a deliberate Stage A placeholder — swapping in Bedrock Titan Embeddings is a contained change to `src/tools/retrieveFinanceDocuments.ts` and does not affect any other component's interface.
 - **Guardrail denied-topics policy was removed.** We configured a DENY topic for "bypass approval" language, then found it produced false positives: [finance_rag_corpus/05_duplicate_invoice_and_fraud_controls.md](finance_rag_corpus/05_duplicate_invoice_and_fraud_controls.md) §3 *describes* fraud indicators ("a request to bypass normal approval") using vocabulary the classifier could not reliably distinguish from an actual bypass attempt, even after three rounds of narrowing the topic definition. Removed it rather than ship an unreliable filter; grounding/relevance checks remain active. Injection resistance instead relies on prompt-level untrusted-data framing (see `src/lib/buildDecisionPrompt.ts`) plus structural containment — the model can only emit a JSON recommendation object, it has no code path to invoke `submit_finance_decision` directly, so a successful prompt injection still cannot bypass the human-approval gate. This is discussed further in [architecture.md](architecture.md).
-- **No orchestrator yet.** Each component (retrieval, lookups, reconciliation, LLM decision) is independently correct and tested, but they are not yet assembled into the bounded state-machine sequence with approval pause/resume described in [architecture.md](architecture.md). This is the next piece of work.
-- **No persistence layer yet** beyond a local JSON ledger used only by `submit_finance_decision`'s idempotency test.
+- **No CLI yet.** The orchestrator (`runCase`/`resolveApproval`) is complete and tested, but the documented CLI commands (`start-run`/`get-run`/`approve`/`list-evaluations`) are a thin wrapper around it that hasn't been written yet — currently exercised via `scripts/try-run-case.ts` instead.
+- **Local JSON persistence, not a database.** `data/runs.local.json` and `data/audit_events.local.json` stand in for the `Runs`/`AuditEvents` DynamoDB tables. Concurrent writes (from `Promise.all`-driven parallel tool calls) are serialized through an in-process write queue — correct for Stage A's single-process usage, but not a substitute for DynamoDB's per-item atomicity in Stage B.
 - **Multi-line PO reconciliation requires explicit per-line invoiced amounts.** `reconcileThreeWayMatch` throws rather than guess an allocation across lines for a multi-line PO if per-line amounts aren't supplied — all current fixtures are single-line POs, so this hasn't been exercised against real multi-line data yet.
 
 ## Sample output
