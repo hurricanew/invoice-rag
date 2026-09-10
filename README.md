@@ -34,8 +34,9 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` — the shape differs slightly depending on which prerequisite path above you're using:
 
+**If using your own AWS CLI profile:**
 ```bash
 AWS_PROFILE=<your-aws-cli-profile>
 AWS_REGION=us-east-1
@@ -49,6 +50,18 @@ Confirm your AWS credentials resolve correctly:
 
 ```bash
 aws sts get-caller-identity --profile $AWS_PROFILE
+```
+
+**If using short-lived credentials sent by the author** (see [Prerequisites](#prerequisites) above): do **not** set `AWS_PROFILE` at all — leave the line out entirely. Use the four values you were sent instead:
+```bash
+AWS_ACCESS_KEY_ID=<sent-to-you>
+AWS_SECRET_ACCESS_KEY=<sent-to-you>
+AWS_SESSION_TOKEN=<sent-to-you>
+AWS_REGION=us-east-1
+BEDROCK_MODEL_ID=amazon.nova-pro-v1:0
+BEDROCK_GUARDRAIL_ID=          # optional, see below
+BEDROCK_GUARDRAIL_VERSION=     # optional, see below
+TOKEN_BUDGET_CEILING=100000
 ```
 
 ### Guardrail (optional)
