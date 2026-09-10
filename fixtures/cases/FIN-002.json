@@ -1,0 +1,13 @@
+{
+  "case_id": "FIN-002",
+  "invoice_reference": "INV-9001",
+  "vendor_id": "VEND-100",
+  "amount": 4820.0,
+  "currency": "AUD",
+  "notes": "Resubmission of invoice INV-9001 against PO-88213.",
+  "_scenario": {
+    "name": "duplicate invoice",
+    "po_number": "PO-88213",
+    "expected_control_behaviour": "Place on hold or recommend rejection; do not propose payment. Matches paid record INV-HIST-0042 exactly on vendor, reference, amount, currency."
+  }
+}

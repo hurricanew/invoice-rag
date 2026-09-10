@@ -1,0 +1,13 @@
+{
+  "case_id": "FIN-004",
+  "invoice_reference": "INV-9003",
+  "vendor_id": "VEND-100",
+  "amount": 2100.0,
+  "currency": "AUD",
+  "notes": "Invoice references PO-99999; PO lookup is expected to time out and no goods receipt is on file.",
+  "_scenario": {
+    "name": "missing evidence",
+    "po_number": "PO-99999",
+    "expected_control_behaviour": "Purchase-order API times out and the corpus lacks a receipt. Apply bounded retry or fail gracefully; expose missing evidence and avoid approval for payment."
+  }
+}

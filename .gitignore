@@ -11,5 +11,8 @@ coverage/
 data/runs.json
 data/*.local.json
 
+# Generated from finance_rag_corpus/ via src/lib/ingestCorpus.ts — reproducible, not committed
+fixtures/corpus_chunks.json
+
 # Original assignment PDF — not ours to redistribute in a public repo
 Agentic_AI_Engineer_Take_Home_Test.pdf

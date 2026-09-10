@@ -1,0 +1,12 @@
+{
+  "vendor_id": "VEND-200",
+  "legal_name": "Southern Cross Logistics Pty Ltd",
+  "status": "ACTIVE",
+  "payment_details_masked": {
+    "bank_account_last4": "1190",
+    "country": "AU"
+  },
+  "risk_flags": [],
+  "bank_account_changed_at": null,
+  "last_updated": "2026-05-10T00:00:00.000Z"
+}

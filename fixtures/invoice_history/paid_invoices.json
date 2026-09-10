@@ -1,0 +1,29 @@
+[
+  {
+    "invoice_id": "INV-HIST-0042",
+    "vendor_id": "VEND-100",
+    "invoice_reference": "INV-9001",
+    "amount": 4820.0,
+    "currency": "AUD",
+    "status": "paid",
+    "invoice_date": "2026-07-20T00:00:00.000Z"
+  },
+  {
+    "invoice_id": "INV-HIST-0043",
+    "vendor_id": "VEND-100",
+    "invoice_reference": "INV-8850",
+    "amount": 1250.5,
+    "currency": "AUD",
+    "status": "paid",
+    "invoice_date": "2026-06-11T00:00:00.000Z"
+  },
+  {
+    "invoice_id": "INV-HIST-0044",
+    "vendor_id": "VEND-200",
+    "invoice_reference": "INV-7710",
+    "amount": 6200.0,
+    "currency": "AUD",
+    "status": "paid",
+    "invoice_date": "2026-05-02T00:00:00.000Z"
+  }
+]

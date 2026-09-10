@@ -1,0 +1,26 @@
+{
+  "po_number": "PO-77301",
+  "currency": "AUD",
+  "approval_status": "APPROVED",
+  "lines": [
+    {
+      "line_number": 1,
+      "description": "Freight and logistics services",
+      "quantity_ordered": 1,
+      "quantity_received": 1,
+      "unit_price": 6200.0,
+      "line_total": 6200.0,
+      "line_type": "services"
+    }
+  ],
+  "total": 6200.0,
+  "goods_receipts": [
+    {
+      "receipt_id": "GR-55090",
+      "line_number": 1,
+      "quantity_received": 1,
+      "received_at": "2026-08-20T00:00:00.000Z"
+    }
+  ],
+  "found": true
+}

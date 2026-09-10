@@ -25,11 +25,13 @@ Work top to bottom; each phase should be runnable/testable before moving to the 
 - [x] Audit-event schema (run_id, ts, event, tool, outcome, duration_ms, correlation_id) with an explicit field allowlist via Zod enum ([src/schemas/audit.ts](src/schemas/audit.ts))
 - [x] Unit tests: 19 cases covering valid-accept and invalid-reject for every schema, including allowlist enforcement and bank-detail masking shape ([test/schemas.test.ts](test/schemas.test.ts)) — all passing, `tsc --noEmit` clean
 
-### A2 — Fixtures (build exactly enough for FIN-001 through FIN-005, nothing more yet)
-- [ ] Ingestion script: chunk `finance_rag_corpus/*.md` (frontmatter + body), compute embeddings, store as a flat local JSON file (swap for S3 in Stage B)
-- [ ] Fixture data for vendors, purchase orders, receipts, invoice history — one record set per FIN-00X scenario, as local JSON files
-- [ ] Write the 5 case fixtures (`fixtures/cases/FIN-001.json` … `FIN-005.json`) per the spec's signals table
-- [ ] Confirm the adversarial doc (`supplier_payment_instructions.md`) and irrelevant doc (`travel_policy_extract.md`) are embedded and retrievable, not filtered out at ingestion
+### A2 — Fixtures (build exactly enough for FIN-001 through FIN-005, nothing more yet) ✅
+- [x] Ingestion script: chunk `finance_rag_corpus/*.md` (frontmatter + section-level body chunking), store as a flat local JSON file ([src/lib/ingestCorpus.ts](src/lib/ingestCorpus.ts)) — 70 chunks from 15 docs, output gitignored as a reproducible build artifact. **Embeddings deferred to A5** (needs a live Bedrock call, out of scope for pure chunking)
+- [x] Fixture data for vendors ([fixtures/vendors/](fixtures/vendors/)), purchase orders ([fixtures/purchase_orders/](fixtures/purchase_orders/)), invoice history ([fixtures/invoice_history/paid_invoices.json](fixtures/invoice_history/paid_invoices.json)) — scenario design table for all 5 cases lives in the ingestion commit message
+- [x] Write the 5 case fixtures (`fixtures/cases/FIN-001.json` … `FIN-005.json`) per the spec's signals table, each carrying an informational `_scenario` block (stripped before schema validation) documenting the expected control behaviour
+- [x] Confirm the adversarial doc (`ADV-001`) and irrelevant doc (`ADV-002`) are chunked and flagged `untrusted`, not filtered out — verified by dedicated tests; also confirmed the superseded authority matrix (`FIN-POL-003-OLD`) is flagged `superseded` and distinct from the current `FIN-POL-003` v4.0
+- [x] PO-99999 (FIN-004) deliberately has no fixture file — `loadPurchaseOrderFixture` returns `null` on missing file, simulating the "not found / timeout" signal without a crash
+- [x] 17 new unit tests (corpus ingestion + fixture loading), all passing; `tsc --noEmit` clean
 
 ### A3 — Tool implementations (pure functions, fully unit-testable)
 - [ ] `retrieve_finance_documents`: cosine-similarity search over the local embedded corpus

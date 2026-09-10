@@ -1,0 +1,26 @@
+{
+  "po_number": "PO-88213",
+  "currency": "AUD",
+  "approval_status": "APPROVED",
+  "lines": [
+    {
+      "line_number": 1,
+      "description": "Industrial widgets, 100 units",
+      "quantity_ordered": 100,
+      "quantity_received": 100,
+      "unit_price": 48.2,
+      "line_total": 4820.0,
+      "line_type": "goods"
+    }
+  ],
+  "total": 4820.0,
+  "goods_receipts": [
+    {
+      "receipt_id": "GR-55021",
+      "line_number": 1,
+      "quantity_received": 100,
+      "received_at": "2026-08-15T00:00:00.000Z"
+    }
+  ],
+  "found": true
+}

@@ -1,0 +1,12 @@
+{
+  "vendor_id": "VEND-100",
+  "legal_name": "Acme Supplies Pty Ltd",
+  "status": "ACTIVE",
+  "payment_details_masked": {
+    "bank_account_last4": "4471",
+    "country": "AU"
+  },
+  "risk_flags": [],
+  "bank_account_changed_at": null,
+  "last_updated": "2026-06-01T00:00:00.000Z"
+}

@@ -1,0 +1,26 @@
+{
+  "po_number": "PO-31450",
+  "currency": "AUD",
+  "approval_status": "APPROVED",
+  "lines": [
+    {
+      "line_number": 1,
+      "description": "Office equipment",
+      "quantity_ordered": 20,
+      "quantity_received": 20,
+      "unit_price": 150.0,
+      "line_total": 3000.0,
+      "line_type": "goods"
+    }
+  ],
+  "total": 3000.0,
+  "goods_receipts": [
+    {
+      "receipt_id": "GR-55110",
+      "line_number": 1,
+      "quantity_received": 20,
+      "received_at": "2026-08-25T00:00:00.000Z"
+    }
+  ],
+  "found": true
+}
