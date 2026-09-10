@@ -1,6 +1,6 @@
 {
   "case_id": "FIN-001",
-  "invoice_reference": "INV-9001",
+  "invoice_reference": "INV-9101",
   "vendor_id": "VEND-100",
   "amount": 4820.0,
   "currency": "AUD",
