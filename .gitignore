@@ -1,0 +1,15 @@
+.env
+.env.local
+node_modules/
+cdk.out/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Local Stage A persistence — run state should not be committed
+data/runs.json
+data/*.local.json
+
+# Original assignment PDF — not ours to redistribute in a public repo
+Agentic_AI_Engineer_Take_Home_Test.pdf
