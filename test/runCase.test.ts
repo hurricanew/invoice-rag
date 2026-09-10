@@ -2,6 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { rm } from "node:fs/promises";
 import path from "node:path";
 
+// Isolated data directory per test file — vitest runs test files in
+// separate processes/module registries by default, and runStore's
+// in-process write-lock cannot coordinate across those. Must be set
+// before runStore.ts is first imported (below), since it reads this once
+// at module load.
+process.env.RUN_DATA_DIR = "data-test-runCase";
+
 vi.mock("../src/lib/llmDecisionWithRepair.js", async () => {
   const actual = await vi.importActual<typeof import("../src/lib/llmDecisionWithRepair.js")>(
     "../src/lib/llmDecisionWithRepair.js",
@@ -36,7 +43,7 @@ function makeResult(overrides: Partial<RecommendationResult> = {}): Recommendati
   };
 }
 
-const dataDir = path.resolve(process.cwd(), "data");
+const dataDir = path.resolve(process.cwd(), "data-test-runCase");
 
 beforeEach(async () => {
   await rm(dataDir, { recursive: true, force: true });

@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, rename, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { RunRecordSchema, type RunRecord, type RunStatus, type RunState } from "../schemas/run.js";
@@ -6,7 +6,15 @@ import { AuditEventSchema, type AuditEvent } from "../schemas/audit.js";
 import type { RecommendationResult } from "../schemas/result.js";
 import type { PendingApproval } from "../schemas/run.js";
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
+// Overridable so concurrent test files (vitest runs each file in its own
+// worker process by default) don't collide on the same data directory —
+// withFileLock below only serializes writes within one process, it cannot
+// coordinate across separate processes. Real CLI usage is single-process,
+// single-command-at-a-time, so the default path is what production code
+// uses; RUN_DATA_DIR is a test-only escape hatch.
+const DATA_DIR = process.env.RUN_DATA_DIR
+  ? path.resolve(process.env.RUN_DATA_DIR)
+  : path.resolve(process.cwd(), "data");
 const RUNS_PATH = path.join(DATA_DIR, "runs.local.json");
 const AUDIT_PATH = path.join(DATA_DIR, "audit_events.local.json");
 
@@ -27,9 +35,16 @@ async function readJson<T>(filePath: string, fallback: T): Promise<T> {
   }
 }
 
+// Write-then-rename is atomic on POSIX filesystems (rename replaces the
+// target in one syscall) — a process killed mid-write leaves the old file
+// intact and an orphaned .tmp file, never a truncated/corrupted target.
+// This is what makes "application restart/resume" a safe recovery rather
+// than a coin-flip on whatever JSON.parse happens to see.
 async function writeJson(filePath: string, data: unknown): Promise<void> {
   await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
+  const tmpPath = `${filePath}.${randomUUID()}.tmp`;
+  await writeFile(tmpPath, JSON.stringify(data, null, 2), "utf-8");
+  await rename(tmpPath, filePath);
 }
 
 // The orchestrator issues concurrent tool calls (Promise.all) that each

@@ -1,5 +1,6 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, rename, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import {
   SubmitFinanceDecisionInputSchema,
   SubmitFinanceDecisionOutputSchema,
@@ -21,7 +22,12 @@ interface LedgerEntry extends SubmitFinanceDecisionOutput {
   submitted_at: string;
 }
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
+// RUN_DATA_DIR override for the same reason as runStore.ts — isolates
+// concurrent test files (vitest's per-file worker processes) from each
+// other and from real CLI usage's data/ directory.
+const DATA_DIR = process.env.RUN_DATA_DIR
+  ? path.resolve(process.env.RUN_DATA_DIR)
+  : path.resolve(process.cwd(), "data");
 const LEDGER_PATH = path.join(DATA_DIR, "ledger.local.json");
 
 async function readLedger(): Promise<LedgerEntry[]> {
@@ -34,9 +40,23 @@ async function readLedger(): Promise<LedgerEntry[]> {
   }
 }
 
+// Write-then-rename is atomic on POSIX filesystems — see runStore.ts for
+// the full rationale (a killed process leaves the old file intact, never
+// a truncated one).
 async function writeLedger(entries: LedgerEntry[]): Promise<void> {
   await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(LEDGER_PATH, JSON.stringify(entries, null, 2), "utf-8");
+  const tmpPath = `${LEDGER_PATH}.${randomUUID()}.tmp`;
+  await writeFile(tmpPath, JSON.stringify(entries, null, 2), "utf-8");
+  await rename(tmpPath, LEDGER_PATH);
+}
+
+// Same lost-update race as runStore.ts's read-modify-write pattern, same
+// fix: serialize all reads+writes to the ledger file within this process.
+let ledgerQueue: Promise<unknown> = Promise.resolve();
+function withLedgerLock<T>(fn: () => Promise<T>): Promise<T> {
+  const next = ledgerQueue.then(fn, fn);
+  ledgerQueue = next.catch(() => undefined);
+  return next;
 }
 
 function decisionToStatus(
@@ -71,32 +91,34 @@ export async function submitFinanceDecision(
     throw new ApprovalRequiredError();
   }
 
-  const ledger = await readLedger();
-  const existing = ledger.find((e) => e.idempotency_key === input.idempotency_key);
-  if (existing) {
+  return withLedgerLock(async () => {
+    const ledger = await readLedger();
+    const existing = ledger.find((e) => e.idempotency_key === input.idempotency_key);
+    if (existing) {
+      return SubmitFinanceDecisionOutputSchema.parse({
+        posting_reference: existing.posting_reference,
+        status: existing.status,
+        idempotent_replay: true,
+      });
+    }
+
+    const postingReference = `PMT-${new Date().getUTCFullYear()}-${String(ledger.length + 1).padStart(6, "0")}`;
+    const entry: LedgerEntry = {
+      idempotency_key: input.idempotency_key,
+      case_id: input.case_id,
+      decision: input.decision,
+      posting_reference: postingReference,
+      status: decisionToStatus(input.decision),
+      idempotent_replay: false,
+      submitted_at: new Date().toISOString(),
+    };
+
+    await writeLedger([...ledger, entry]);
+
     return SubmitFinanceDecisionOutputSchema.parse({
-      posting_reference: existing.posting_reference,
-      status: existing.status,
-      idempotent_replay: true,
+      posting_reference: entry.posting_reference,
+      status: entry.status,
+      idempotent_replay: false,
     });
-  }
-
-  const postingReference = `PMT-${new Date().getUTCFullYear()}-${String(ledger.length + 1).padStart(6, "0")}`;
-  const entry: LedgerEntry = {
-    idempotency_key: input.idempotency_key,
-    case_id: input.case_id,
-    decision: input.decision,
-    posting_reference: postingReference,
-    status: decisionToStatus(input.decision),
-    idempotent_replay: false,
-    submitted_at: new Date().toISOString(),
-  };
-
-  await writeLedger([...ledger, entry]);
-
-  return SubmitFinanceDecisionOutputSchema.parse({
-    posting_reference: entry.posting_reference,
-    status: entry.status,
-    idempotent_replay: false,
   });
 }

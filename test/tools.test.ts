@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { rm } from "node:fs/promises";
 import path from "node:path";
+
+// Isolated data directory per test file — see the comment in
+// runCase.test.ts for why this is necessary.
+process.env.RUN_DATA_DIR = "data-test-tools";
+
 import { retrieveFinanceDocuments } from "../src/tools/retrieveFinanceDocuments.js";
 import { getVendorRecord, VendorNotFoundError } from "../src/tools/getVendorRecord.js";
 import { getPurchaseOrder } from "../src/tools/getPurchaseOrder.js";
@@ -115,7 +120,7 @@ describe("checkInvoiceHistory", () => {
 });
 
 describe("submitFinanceDecision", () => {
-  const dataDir = path.resolve(process.cwd(), "data");
+  const dataDir = path.resolve(process.cwd(), "data-test-tools");
 
   beforeEach(async () => {
     await rm(dataDir, { recursive: true, force: true });

@@ -8,8 +8,8 @@ coverage/
 .DS_Store
 
 # Local Stage A persistence — run state should not be committed
-data/runs.json
-data/*.local.json
+data/
+data-test-*/
 
 # Generated from finance_rag_corpus/ via src/lib/ingestCorpus.ts — reproducible, not committed
 fixtures/corpus_chunks.json
