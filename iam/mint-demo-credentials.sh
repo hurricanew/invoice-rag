@@ -56,7 +56,11 @@ SECRET=$(echo "$KEY_JSON" | python3 -c "import json,sys; print(json.load(sys.std
 sleep 8
 
 echo "Minting a $DURATION-second session token..." >&2
-TOKEN_JSON=$(AWS_ACCESS_KEY_ID="$AKID" AWS_SECRET_ACCESS_KEY="$SECRET" AWS_PROFILE= \
+# AWS_PROFILE must be UNSET here, not set to an empty string — the AWS CLI
+# treats AWS_PROFILE="" as "use the profile literally named ''", which
+# fails with "The config profile () could not be found". `env -u` removes
+# the variable entirely from the subprocess's environment instead.
+TOKEN_JSON=$(env -u AWS_PROFILE AWS_ACCESS_KEY_ID="$AKID" AWS_SECRET_ACCESS_KEY="$SECRET" \
   aws sts get-session-token --duration-seconds "$DURATION")
 
 echo "Deleting the underlying access key (the session token above keeps working on its own)..." >&2
