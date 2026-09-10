@@ -6,6 +6,8 @@ An internal accounts-payable assistant that retrieves financial evidence via RAG
 
 **AWS account:** configured via CLI profile `rag-demo-2`, region `us-east-1`. The account ID itself is not committed anywhere in this repo — set it locally via `.env` (see `.env.example`) or let CDK/CLI resolve it from the profile at run time.
 
+**Architecture diagrams** (Stage B target design — the system overview and the Step Functions workflow detail): [docs/diagrams/system-overview.svg](docs/diagrams/system-overview.svg), [docs/diagrams/workflow-detail.svg](docs/diagrams/workflow-detail.svg). These describe the Stage B AWS deployment (Step Functions/API Gateway/DynamoDB/Bedrock) that this design targets; Stage A (what's actually built and running today) implements the same state sequence as a local orchestrator — see [tasks.md](tasks.md) for the mapping between the two.
+
 ## 2. Components
 
 ### API layer

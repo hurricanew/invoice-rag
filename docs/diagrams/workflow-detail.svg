@@ -1,0 +1,121 @@
+<svg width="680" height="900" viewBox="0 0 680 900" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Accounts-payable agent — Step Functions workflow detail</title>
+<desc>Inside the state machine: retrieve finance documents, then run three read-only lookups in parallel, then reconcile deterministically in code, then call Bedrock for a decision, then validate that output against a typed schema with a bounded repair retry back to the decision step and an explicit failure state if it stays invalid. A valid consequential decision waits for human approval before a final idempotent submit; a non-consequential decision completes directly.</desc>
+<defs>
+<marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#5f5e5a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+<rect width="680" height="900" fill="#ffffff"/>
+
+<!-- Retrieve documents -->
+<g>
+<rect x="260" y="30" width="160" height="44" rx="8" fill="#e6f1fb" stroke="#185fa5" stroke-width="0.5"/>
+<text x="340" y="52" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#042c53">Retrieve documents</text>
+</g>
+<line x1="340" y1="74" x2="340" y2="106" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+
+<!-- Parallel lookups container -->
+<rect x="90" y="106" width="500" height="110" rx="12" fill="none" stroke="#185fa5" stroke-width="0.5" stroke-dasharray="4 3"/>
+<text x="112" y="128" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#185fa5">Parallel (read-only, deterministic merge)</text>
+
+<g>
+<rect x="110" y="146" width="140" height="52" rx="8" fill="#e6f1fb" stroke="#185fa5" stroke-width="0.5"/>
+<text x="180" y="164" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#042c53">Vendor record</text>
+<text x="180" y="182" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#185fa5">mock lookup</text>
+</g>
+<g>
+<rect x="270" y="146" width="140" height="52" rx="8" fill="#e6f1fb" stroke="#185fa5" stroke-width="0.5"/>
+<text x="340" y="164" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#042c53">Purchase order</text>
+<text x="340" y="182" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#185fa5">+ receipt, mock</text>
+</g>
+<g>
+<rect x="430" y="146" width="140" height="52" rx="8" fill="#e6f1fb" stroke="#185fa5" stroke-width="0.5"/>
+<text x="500" y="164" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#042c53">Invoice history</text>
+<text x="500" y="182" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#185fa5">duplicates, mock</text>
+</g>
+<line x1="340" y1="216" x2="340" y2="248" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+
+<!-- Reconcile -->
+<g>
+<rect x="230" y="248" width="220" height="52" rx="8" fill="#faece7" stroke="#993c1d" stroke-width="0.5"/>
+<text x="340" y="266" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#4a1b0c">Reconcile</text>
+<text x="340" y="284" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#993c1d">code, not LLM — tolerances, totals</text>
+</g>
+<line x1="340" y1="300" x2="340" y2="332" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+
+<!-- LLM decision -->
+<g>
+<rect x="230" y="332" width="220" height="52" rx="8" fill="#faece7" stroke="#993c1d" stroke-width="0.5"/>
+<text x="340" y="350" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#4a1b0c">LLM decision</text>
+<text x="340" y="368" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#993c1d">Bedrock Converse API</text>
+</g>
+<line x1="450" y1="358" x2="500" y2="358" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+
+<!-- Token counter -->
+<g>
+<rect x="500" y="332" width="150" height="52" rx="8" fill="#faeeda" stroke="#854f0b" stroke-width="0.5"/>
+<text x="575" y="350" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#412402">Token counter</text>
+<text x="575" y="368" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#854f0b">usage + budget</text>
+</g>
+
+<line x1="340" y1="384" x2="340" y2="416" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+
+<!-- Validate output -->
+<g>
+<rect x="230" y="416" width="220" height="60" rx="8" fill="#fcebeb" stroke="#a32d2d" stroke-width="0.5"/>
+<text x="340" y="436" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#501313">Validate output</text>
+<text x="340" y="454" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#a32d2d">schema + repair loop</text>
+</g>
+
+<!-- Repair loop, routed clear of the token counter box -->
+<path d="M450 446 L 610 446 L 610 358 L 452 358" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+<text x="614" y="400" font-family="sans-serif" font-size="12" fill="#5f5e5a">invalid: repair</text>
+<text x="614" y="414" font-family="sans-serif" font-size="12" fill="#5f5e5a">retry, max 2</text>
+
+<!-- Explicit fail branch -->
+<path d="M230 456 L 70 456 L 70 560" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+<text x="20" y="500" font-family="sans-serif" font-size="12" fill="#5f5e5a">still invalid</text>
+<g>
+<rect x="10" y="560" width="150" height="52" rx="8" fill="#fcebeb" stroke="#a32d2d" stroke-width="0.5"/>
+<text x="85" y="578" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#501313">Fail explicit</text>
+<text x="85" y="596" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#a32d2d">typed error result</text>
+</g>
+
+<!-- Valid path down -->
+<line x1="340" y1="476" x2="340" y2="508" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+
+<!-- Choice -->
+<g>
+<rect x="250" y="508" width="180" height="48" rx="8" fill="#f1efe8" stroke="#5f5e5a" stroke-width="0.5"/>
+<text x="340" y="532" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#2c2c2a">Consequential?</text>
+</g>
+
+<!-- Yes -> wait for approval -->
+<path d="M430 532 L 500 532 L 500 588" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+<text x="505" y="548" font-family="sans-serif" font-size="12" fill="#5f5e5a">yes</text>
+<g>
+<rect x="410" y="588" width="180" height="60" rx="8" fill="#faeeda" stroke="#854f0b" stroke-width="0.5"/>
+<text x="500" y="608" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#412402">Wait for approval</text>
+<text x="500" y="626" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#854f0b">pauses the run</text>
+</g>
+<path d="M500 648 L 500 690 L 450 706" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+
+<!-- No -> straight down -->
+<path d="M250 532 L 190 532 L 190 706" fill="none" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+<text x="140" y="548" font-family="sans-serif" font-size="12" fill="#5f5e5a">no</text>
+
+<!-- Submit decision -->
+<g>
+<rect x="230" y="706" width="220" height="52" rx="8" fill="#eaf3de" stroke="#3b6d11" stroke-width="0.5"/>
+<text x="340" y="724" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#173404">Submit decision</text>
+<text x="340" y="742" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" fill="#3b6d11">idempotent, sandboxed</text>
+</g>
+<line x1="340" y1="758" x2="340" y2="790" stroke="#5f5e5a" stroke-width="0.5" marker-end="url(#arrow2)"/>
+
+<!-- Done -->
+<g>
+<rect x="230" y="790" width="220" height="48" rx="8" fill="#f1efe8" stroke="#5f5e5a" stroke-width="0.5"/>
+<text x="340" y="814" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="14" font-weight="500" fill="#2c2c2a">Persist audit trail, end</text>
+</g>
+</svg>

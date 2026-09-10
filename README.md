@@ -159,15 +159,24 @@ Full transcripts, captured from real Bedrock runs:
 
 These transcripts show the recommendation step only (retrieval → reconciliation → LLM decision), since the orchestrator that would add a full audit-event timeline and the actual approval pause/resume is Stage A6, not yet built.
 
+## Architecture diagrams
+
+- [docs/diagrams/system-overview.svg](docs/diagrams/system-overview.svg) — client → API Gateway → Lambda handlers → Step Functions → DynamoDB/Bedrock/S3 corpus (Stage B target)
+- [docs/diagrams/workflow-detail.svg](docs/diagrams/workflow-detail.svg) — the state machine itself: retrieve → parallel lookups → reconcile → LLM decision → validate/repair → approval gate → submit
+
+These describe the Stage B AWS deployment design. Stage A (what's running today, verified live) implements the identical state sequence as a local TypeScript orchestrator instead of Step Functions — see [architecture.md](architecture.md) for the full component mapping between the two.
+
 ## Repository structure
 
 ```
 src/schemas/     Zod contracts: tool I/O, case requests, audit events, the typed recommendation result
 src/tools/       The 5 tool implementations (retrieve_finance_documents, get_vendor_record, get_purchase_order, check_invoice_history, submit_finance_decision)
-src/lib/         Reconciliation logic, LLM prompt/decision/repair pipeline, corpus ingestion, config, token accounting
+src/lib/         Orchestrator (runCase/resolveApproval), reconciliation logic, LLM prompt/decision/repair pipeline, evaluation criteria, corpus ingestion, config, token accounting
 fixtures/        Vendor/PO/invoice-history fixture data and the 5 FIN-00X case scenarios
 finance_rag_corpus/  The 15-document policy corpus (12 real policies, 1 superseded, 2 adversarial/irrelevant test documents)
+docs/diagrams/   Architecture diagrams (SVG)
 test/            Unit/contract tests (offline) and test/integration/ (live Bedrock calls)
+cli/             The required interface: start-run, get-run, approve, reject, list-evaluations
 scripts/         Development scratch scripts, not the production interface
 ```
 
