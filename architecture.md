@@ -77,5 +77,19 @@ DynamoDB is the source of truth for `GET /runs/{id}` reads (fast, queryable). St
 
 - In-Lambda cosine-similarity retrieval doesn't scale past a small fixed corpus; production would use OpenSearch Serverless or Kendra.
 - No multi-region/DR story — single-region demo.
-- Guardrails' denied-topics list is a fixed seed set, not tuned against a broad adversarial test suite.
+- The denied-topics Guardrail policy was removed after testing showed it false-positives on policy text describing fraud indicators (see §7 below and the README's Known Limitations section for the full story) — grounding/relevance checks remain, but there is currently no automated filter catching novel injection phrasings before they reach the model. Injection resistance rests on prompt framing plus structural containment.
 - Token/cost budget enforcement is a simple ceiling check, not a rolling per-tenant budget system.
+- Stage A's retrieval scoring is term-overlap, not real embeddings (Stage A limitation only, not a Stage B design choice — Stage B's RAG design in this document already assumes embeddings).
+
+## 7. Production changes
+
+Concrete changes we would make before running this for real transactions, beyond what's already called out as a Stage A vs. Stage B distinction elsewhere in this document:
+
+- **Replace the removed denied-topics Guardrail policy with a purpose-built approach.** A generic DENY-topic classifier proved too coarse to distinguish a policy document *describing* an attack pattern from an actual attack attempt. In production we would either (a) apply topic filtering only to the model's *output* rather than its input — since a retrieved policy document is expected to discuss fraud vocabulary, but a generated recommendation should not — or (b) use Bedrock's STANDARD guardrail tier (longer, more nuanced topic definitions, at the cost of requiring cross-region inference) and validate it against a much larger adversarial test corpus than the single seed document used here.
+- **Move to a managed vector store.** OpenSearch Serverless or Kendra, with incremental ingestion (new/changed policy documents re-embedded automatically) rather than a full re-embed on every ingestion run.
+- **Real system-of-record integrations**, replacing the four mocked tools: an actual ERP/procurement API for `get_purchase_order`, a vendor-master service for `get_vendor_record`, a ledger/AP system for `check_invoice_history`, and a real (sandboxed, then eventually production) posting API for `submit_finance_decision` — each behind the same typed contracts already defined in `src/schemas/tools.ts`, so the tool implementations are the only layer that changes.
+- **Segregation-of-duties enforcement as code, not just policy text.** FIN-POL-001 §4 (the person who changes a vendor record cannot approve an invoice for that vendor within 5 business days) is currently a policy fact the LLM can cite but not a check the system enforces. Production would add this as a deterministic check alongside the existing reconciliation logic, not something left to the model to remember.
+- **Per-tenant/per-business-unit token and cost budgets**, not a single global ceiling, plus alerting when a run approaches its budget rather than only failing at the ceiling.
+- **Full OpenTelemetry tracing** across the Lambda/Step Functions boundary (X-Ray is AWS-native and a reasonable start, but OTel gives provider-neutral traces if the system needs to span non-AWS services later).
+- **Formal approval-identity verification** — the current design trusts whatever identity calls the approve/reject endpoint; production needs this behind real authentication (SSO/IAM-federated), with the approver's role cross-checked against the authority register (FIN-POL-003 §5) before the decision is accepted, not just recorded.
+- **Multi-region/DR**, since a single-region demo is a reasonable Stage B scope cut but not a production posture for a financial control system.
