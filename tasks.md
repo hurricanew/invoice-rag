@@ -18,12 +18,12 @@ Work top to bottom; each phase should be runnable/testable before moving to the 
 - [x] Confirm `.gitignore` covers `.env`/`.env.local`, `node_modules/`, `dist/`, and local run-state (`data/runs.json`) — real account IDs, keys, credentials must never land in a committed file (`.env.example` holds placeholders only)
 - [x] Smoke-tested: `npx tsc --noEmit` clean, `npx vitest run` passes, `npm run cli` runs via `tsx`
 
-### A1 — Typed contracts
-- [ ] Zod types for the 5 tool contracts: `RetrieveFinanceDocumentsInput/Output`, `GetVendorRecordInput/Output`, `GetPurchaseOrderInput/Output`, `CheckInvoiceHistoryInput/Output`, `SubmitFinanceDecisionInput/Output`
-- [ ] Typed final result schema: sourced facts / calculations / inferences / unknowns / policy findings / actions taken
-- [ ] Case-request schema (case ID, invoice ref, vendor, amount, currency, notes/attachments)
-- [ ] Audit-event schema (run_id, ts, event, tool, outcome, duration_ms, correlation_id) with an explicit field allowlist
-- [ ] Unit tests: schema validation accepts valid fixtures, rejects malformed ones
+### A1 — Typed contracts ✅
+- [x] Zod types for the 5 tool contracts: `RetrieveFinanceDocumentsInput/Output`, `GetVendorRecordInput/Output`, `GetPurchaseOrderInput/Output`, `CheckInvoiceHistoryInput/Output`, `SubmitFinanceDecisionInput/Output` ([src/schemas/tools.ts](src/schemas/tools.ts))
+- [x] Typed final result schema: sourced facts / calculations / inferences / unknowns / policy findings / actions taken — also includes `confidence`, `assumptions`, `exceptions`, `next_action` as named top-level fields per the spec's exact wording ([src/schemas/result.ts](src/schemas/result.ts))
+- [x] Case-request schema (case ID, invoice ref, vendor, amount, currency, notes/attachments) ([src/schemas/case.ts](src/schemas/case.ts))
+- [x] Audit-event schema (run_id, ts, event, tool, outcome, duration_ms, correlation_id) with an explicit field allowlist via Zod enum ([src/schemas/audit.ts](src/schemas/audit.ts))
+- [x] Unit tests: 19 cases covering valid-accept and invalid-reject for every schema, including allowlist enforcement and bank-detail masking shape ([test/schemas.test.ts](test/schemas.test.ts)) — all passing, `tsc --noEmit` clean
 
 ### A2 — Fixtures (build exactly enough for FIN-001 through FIN-005, nothing more yet)
 - [ ] Ingestion script: chunk `finance_rag_corpus/*.md` (frontmatter + body), compute embeddings, store as a flat local JSON file (swap for S3 in Stage B)
