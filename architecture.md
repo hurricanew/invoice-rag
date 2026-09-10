@@ -29,7 +29,7 @@ An internal accounts-payable assistant that retrieves financial evidence via RAG
 | `submit_finance_decision` | DynamoDB (simulated posting) | Deny-by-default, approval-gated, idempotency key required. Never moves real money. |
 
 ### Model
-- **Bedrock**, model `anthropic.claude-sonnet-4-5-20250929-v1:0`, invoked only from the LLM decision state via `Converse` with a Guardrail attached (`guardrailIdentifier`/`guardrailVersion`).
+- **Bedrock**, model `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (cross-region US inference profile — the base model ID does not support on-demand invocation directly), invoked only from the LLM decision state via `Converse` with a Guardrail attached (`guardrailIdentifier`/`guardrailVersion`).
 - **Guardrails** config: contextual grounding check (blocks/flags claims inconsistent with retrieved chunks) + denied-topics filter (bypass-approval / disable-verification / skip-policy language) + PII redaction on logged prompts.
 - Model ID and Guardrail ID are config, not code — held in SSM Parameter Store, read by the Lambda at cold start.
 - No API key to manage — Bedrock auth flows through the Lambda's IAM role (`bedrock:InvokeModel`, `bedrock:ApplyGuardrail`, scoped to the specific model ID and guardrail ID).
