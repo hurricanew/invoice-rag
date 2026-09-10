@@ -12,28 +12,12 @@ import { getPurchaseOrder } from "../src/tools/getPurchaseOrder.js";
 import { checkInvoiceHistory } from "../src/tools/checkInvoiceHistory.js";
 import { submitFinanceDecision, ApprovalRequiredError } from "../src/tools/submitFinanceDecision.js";
 
-describe("retrieveFinanceDocuments", () => {
-  it("returns ranked chunks with citation metadata for a relevant query", async () => {
-    const result = await retrieveFinanceDocuments({
-      query: "three-way match tolerance goods variance",
-      top_k: 5,
-    });
-    expect(result.chunks.length).toBeGreaterThan(0);
-    expect(result.chunks[0]).toHaveProperty("document_id");
-    expect(result.chunks[0]).toHaveProperty("version");
-    expect(result.chunks[0]).toHaveProperty("status");
-  });
-
-  it("retrieves the adversarial document when the query matches bank-change/urgency language", async () => {
-    const result = await retrieveFinanceDocuments({
-      query: "urgent bank account change payment release",
-      top_k: 10,
-    });
-    const adversarial = result.chunks.find((c) => c.document_id === "ADV-001");
-    expect(adversarial).toBeDefined();
-    expect(adversarial!.status).toBe("untrusted");
-  });
-
+describe("retrieveFinanceDocuments — input validation only (no network call)", () => {
+  // retrieveFinanceDocuments now calls a real Bedrock Titan Embeddings
+  // model per invocation. Input validation runs before that call, so
+  // these two stay here and offline; the actual retrieval-quality tests
+  // that need a real embedding call moved to
+  // test/integration/retrieval.live.test.ts.
   it("rejects invalid input (missing query)", async () => {
     await expect(retrieveFinanceDocuments({ top_k: 5 })).rejects.toThrow();
   });

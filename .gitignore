@@ -11,8 +11,11 @@ coverage/
 data/
 data-test-*/
 
-# Generated from finance_rag_corpus/ via src/lib/ingestCorpus.ts — reproducible, not committed
+# Generated from finance_rag_corpus/ via src/lib/ingestCorpus.ts — reproducible
+# (re-running ingestion recomputes both; the cache just avoids repeat Bedrock
+# calls for unchanged content), not committed
 fixtures/corpus_chunks.json
+fixtures/corpus_embeddings_cache.json
 
 # Contains real account ID / guardrail ID in resource ARNs — not for public commit
 iam/interviewer-bedrock-policy.json

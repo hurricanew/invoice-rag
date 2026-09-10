@@ -16,6 +16,14 @@ vi.mock("../src/lib/llmDecisionWithRepair.js", async () => {
   return { ...actual, getLLMDecisionWithRepair: vi.fn() };
 });
 
+// retrieveFinanceDocuments now makes a real Bedrock Titan Embeddings call
+// per invocation — mocked here so this offline unit suite stays offline
+// and fast. Real embedding-backed retrieval is covered by
+// test/tools.test.ts and test/integration/.
+vi.mock("../src/tools/retrieveFinanceDocuments.js", () => ({
+  retrieveFinanceDocuments: vi.fn().mockResolvedValue({ chunks: [] }),
+}));
+
 import { getLLMDecisionWithRepair } from "../src/lib/llmDecisionWithRepair.js";
 import { runCase, resolveApproval, RunNotFoundError, RunNotAwaitingApprovalError } from "../src/lib/runCase.js";
 import { getRun, getAuditEvents } from "../src/lib/runStore.js";

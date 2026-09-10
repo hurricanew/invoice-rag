@@ -1,5 +1,7 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { createHash } from "node:crypto";
+import { embedText } from "./embeddings.js";
 
 export interface CorpusDocMeta {
   document_id: string;
@@ -13,6 +15,9 @@ export interface CorpusChunk extends CorpusDocMeta {
   chunk_id: string;
   page_or_section?: string;
   text: string;
+  // Populated by embedCorpusChunks — absent right after loadCorpusChunks,
+  // since chunking is pure/local but embedding needs a Bedrock call.
+  embedding?: number[];
 }
 
 function parseFrontmatter(raw: string): { meta: Record<string, string>; body: string } {
@@ -86,13 +91,80 @@ export async function writeChunksToFile(chunks: CorpusChunk[], outPath: string):
   await writeFile(outPath, JSON.stringify(chunks, null, 2), "utf-8");
 }
 
+function chunkContentHash(chunk: CorpusChunk): string {
+  return createHash("sha256").update(chunk.text).digest("hex");
+}
+
+// Computes a real Bedrock embedding for each chunk, one call per chunk not
+// already cached. Cache key is chunk_id + a hash of its text, so editing a
+// corpus document only re-embeds the changed chunks, not the whole corpus
+// — the embed calls are cheap individually but there's no reason to repeat
+// them for content that hasn't changed.
+export async function embedCorpusChunks(
+  chunks: CorpusChunk[],
+  cache: Map<string, { hash: string; embedding: number[] }> = new Map(),
+): Promise<CorpusChunk[]> {
+  const embedded: CorpusChunk[] = [];
+  for (const chunk of chunks) {
+    const hash = chunkContentHash(chunk);
+    const cached = cache.get(chunk.chunk_id);
+    if (cached && cached.hash === hash) {
+      embedded.push({ ...chunk, embedding: cached.embedding });
+      continue;
+    }
+    const embedding = await embedText(chunk.text);
+    cache.set(chunk.chunk_id, { hash, embedding });
+    embedded.push({ ...chunk, embedding });
+  }
+  return embedded;
+}
+
+interface EmbeddingCacheFile {
+  entries: { chunk_id: string; hash: string; embedding: number[] }[];
+}
+
+export async function loadEmbeddingCache(
+  cachePath: string,
+): Promise<Map<string, { hash: string; embedding: number[] }>> {
+  try {
+    const raw = await readFile(cachePath, "utf-8");
+    const file: EmbeddingCacheFile = JSON.parse(raw);
+    return new Map(file.entries.map((e) => [e.chunk_id, { hash: e.hash, embedding: e.embedding }]));
+  } catch (err: any) {
+    if (err.code === "ENOENT") return new Map();
+    throw err;
+  }
+}
+
+export async function saveEmbeddingCache(
+  cachePath: string,
+  cache: Map<string, { hash: string; embedding: number[] }>,
+): Promise<void> {
+  const file: EmbeddingCacheFile = {
+    entries: Array.from(cache.entries()).map(([chunk_id, v]) => ({ chunk_id, ...v })),
+  };
+  await writeFile(cachePath, JSON.stringify(file), "utf-8");
+}
+
 // Run directly: tsx src/lib/ingestCorpus.ts
 if (import.meta.url === `file://${process.argv[1]}`) {
   const corpusDir = path.resolve(process.cwd(), "finance_rag_corpus");
   const outPath = path.resolve(process.cwd(), "fixtures", "corpus_chunks.json");
+  const cachePath = path.resolve(process.cwd(), "fixtures", "corpus_embeddings_cache.json");
+
   loadCorpusChunks(corpusDir).then(async (chunks) => {
-    await writeChunksToFile(chunks, outPath);
-    console.log(`Ingested ${chunks.length} chunks from ${corpusDir} -> ${outPath}`);
+    console.log(`Chunked ${chunks.length} sections from ${corpusDir}. Computing embeddings...`);
+    const cache = await loadEmbeddingCache(cachePath);
+    const cacheSizeBefore = cache.size;
+    const embedded = await embedCorpusChunks(chunks, cache);
+    await saveEmbeddingCache(cachePath, cache);
+    await writeChunksToFile(embedded, outPath);
+
+    const newlyEmbedded = cache.size - cacheSizeBefore;
+    console.log(`Ingested ${embedded.length} chunks -> ${outPath}`);
+    console.log(
+      `Embeddings: ${embedded.length - newlyEmbedded} from cache, ${newlyEmbedded} newly computed via Bedrock Titan.`,
+    );
     const statuses = chunks.reduce<Record<string, number>>((acc, c) => {
       acc[c.status] = (acc[c.status] ?? 0) + 1;
       return acc;

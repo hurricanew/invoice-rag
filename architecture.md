@@ -77,11 +77,10 @@ DynamoDB is the source of truth for `GET /runs/{id}` reads (fast, queryable). St
 
 ## 6. Known limitations (demo scope)
 
-- In-Lambda cosine-similarity retrieval doesn't scale past a small fixed corpus; production would use OpenSearch Serverless or Kendra.
+- Retrieval uses real Bedrock Titan Embeddings v2 (cosine similarity), computed and cached locally rather than in a managed vector store — doesn't scale past a small fixed corpus; production would use OpenSearch Serverless or Kendra, as already assumed by this document's Stage B RAG design.
 - No multi-region/DR story — single-region demo.
 - The denied-topics Guardrail policy was removed after testing showed it false-positives on policy text describing fraud indicators (see §7 below and the README's Known Limitations section for the full story) — grounding/relevance checks remain, but there is currently no automated filter catching novel injection phrasings before they reach the model. Injection resistance rests on prompt framing plus structural containment.
 - Token/cost budget enforcement is a simple ceiling check, not a rolling per-tenant budget system.
-- Stage A's retrieval scoring is term-overlap, not real embeddings (Stage A limitation only, not a Stage B design choice — Stage B's RAG design in this document already assumes embeddings).
 
 ## 7. Production changes
 
