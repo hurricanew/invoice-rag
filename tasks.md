@@ -98,6 +98,13 @@ Work top to bottom; each phase should be runnable/testable before moving to the 
 
 **Stage A checkpoint: at this point you have a fully working, demoable system with real LLM calls, all 5 test cases passing, zero deployed AWS infrastructure, and near-zero risk of something breaking live.** Everything below is upgrade work, not a blocker to having something to show.
 
+### Optional extension — Property-based / fault-injection tests ✅
+Picked this one from the spec's optional-extensions list (§10) since the required failure modes (tool timeout, transient failure) had exactly one hardcoded mock scenario testing them, not systematic fault coverage.
+
+- [x] [test/withTimeoutAndRetry.test.ts](test/withTimeoutAndRetry.test.ts) — fault-injects the actual retry/timeout primitive directly (not through the orchestrator): a function that never resolves (real timeout), a function that always throws (retry budget exhausted), a function that fails N times then recovers (retry budget absorbs it), a function that resolves just after its own deadline (must still count as timed out, not silently accepted late). 8 tests.
+- [x] [test/faultInjection.test.ts](test/faultInjection.test.ts) — fault-injects at the orchestrator level: `describe.each` sweeps independently failing each of the 4 upstream dependencies (`get_vendor_record`, `get_purchase_order`, `check_invoice_history`, `retrieve_finance_documents`) one at a time while the others behave normally, asserting `runCase` always fails explicitly (`status: FAILED`, populated `error`, `result: null`, a `failure` outcome in the audit trail, and a stable re-read) regardless of *which* dependency broke — never a silent success, never corrupted state, never an indefinite `IN_PROGRESS`. Plus two more: a tool that fails twice then recovers within the retry budget still completes the run correctly, and a tool that exceeds the retry budget fails the run rather than silently proceeding on stale/default data. 6 tests.
+- [x] 14 new tests total, verified with 5 consecutive full-suite runs (134/134 each time) to rule out the kind of cross-file test-isolation flakiness found and fixed earlier in Stage B.
+
 ---
 
 ## Stage B — Port to AWS (only after Stage A is solid)
